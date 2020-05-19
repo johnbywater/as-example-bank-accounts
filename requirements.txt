@@ -1,1 +1,3 @@
 eventsourcing==8.2.1
+fastapi==0.53.2
+uvicorn==0.11.3
