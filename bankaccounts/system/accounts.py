@@ -1,3 +1,4 @@
+from bankaccounts.system.interface import User
 from decimal import Decimal
 from uuid import UUID
 
@@ -91,6 +92,11 @@ class Accounts(ProcessApplication):
             amount=event.amount,
         )
 
+    @policy.register(User.Created)
+    def _(self, repository, event):
+        account = BankAccount.__create__(originator_id=event.originator_id)
+        self.save(account)
+    
     def _append_transaction(self, repository, transaction_id, account_id, amount):
         account = self.get_account(repository=repository, account_id=account_id)
         try:
