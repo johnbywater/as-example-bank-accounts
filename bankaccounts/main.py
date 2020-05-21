@@ -1,7 +1,8 @@
+import json
+import uvicorn
 from collections import OrderedDict
 from uuid import UUID
 from bankaccounts.system.accounts import Accounts
-import uvicorn
 from fastapi import FastAPI, WebSocket, Request
 from fastapi import status
 from bankaccounts.system.interface import InterfaceApplication
@@ -10,16 +11,29 @@ from bankaccounts.system.definition import BankAccountSystem
 from eventsourcing.system.runner import SingleThreadedRunner
 from starlette.types import Message
 from fastapi.responses import JSONResponse
+from decimal import Decimal
+
 
 async def get_all_accounts(request: Request):
-    return JSONResponse({"accounts":  list(request.app.state.connections.keys()) })
-
+    return JSONResponse(request.app.state.interface.dummy_datastore)
 
 async def handle_message(commands: Commands, message: Message):
-    data: dict = message['text']
+    data: dict = json.loads(message['text'])
+    print(f"\n\n\n\nfrom handle message data is \n{data}\n\n\n")
     command_type = data['type']
     if command_type == "deposit":
-        pass
+        credit_account_id = UUID(data["credit_account_id"])
+        amount = Decimal(data["amount"])
+        commands.deposit_funds(credit_account_id, amount)
+    elif command_type == "transfer":
+        debit_account_id = UUID(data["debit_account_id"])
+        credit_account_id = UUID(data["credit_account_id"])
+        amount = Decimal(data["amount"])
+        commands.transfer_funds(debit_account_id, credit_account_id, amount)
+    elif command_type == "withdraw":
+        debit_account_id = UUID(data["debit_account_id"])
+        amount = Decimal(data["amount"])
+        commands.withdraw_funds(debit_account_id, amount)
 
 async def ws(websocket: WebSocket):
     app: FastAPI = websocket.app
@@ -29,22 +43,21 @@ async def ws(websocket: WebSocket):
     assert isinstance(connections, OrderedDict)
     await websocket.accept()
     account_id: UUID = accounts.create_account()
+    websocket.state.account_id = account_id
     connections[str(account_id)] = websocket 
     try:
         while True:
             message: Message = await websocket.receive()
             if message["type"] == "websocket.receive":
-                print("\n\n\n\nmessage received")
-                print(message)
-                print("\n\n\n")
+                await handle_message(commands, message)
             elif message["type"] == "websocket.disconnect":
                 close_code = int(message.get("code", status.WS_1000_NORMAL_CLOSURE))
-                break
+                del connections[str(websocket.state.account_id)]
+                await websocket.close(close_code=close_code)
     except Exception as exc:
-        pass
+        raise exc
     finally:
         await websocket.close(close_code = status.WS_1011_INTERNAL_ERROR)
-
 
 if __name__ == "__main__":
     with SingleThreadedRunner(BankAccountSystem(None)) as runner:
