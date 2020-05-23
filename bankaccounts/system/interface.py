@@ -8,12 +8,6 @@ from eventsourcing.application.process import ProcessApplication
 from eventsourcing.domain.model.aggregate import BaseAggregateRoot
 from fastapi import FastAPI, WebSocket
 
-class User(BaseAggregateRoot):
-    __subclassevents__ = True
-
-
-
-
 
 class InterfaceApplication(ProcessApplication):
 

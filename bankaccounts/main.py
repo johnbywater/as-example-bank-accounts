@@ -39,7 +39,6 @@ def on_app_shutdown():
 
 async def handle_message(commands: Commands, message: Message):
     data: dict = json.loads(message['text'])
-    print(f"\n\n\n\nfrom handle message data is \n{data}\n\n\n")
     command_type = data['type']
     if command_type == "deposit":
         credit_account_id = UUID(data["credit_account_id"])
@@ -61,7 +60,6 @@ async def get_all_accounts(request: Request):
 
 @app.websocket("/ws/{state}")
 async def ws(websocket: WebSocket, state: Any=None):
-    print(f"/n/n/nstate is {state}/n/n/n")
     app: FastAPI = websocket.app
     commands: Commands = app.state.commands
     accounts: Accounts = app.state.accounts
@@ -77,9 +75,6 @@ async def ws(websocket: WebSocket, state: Any=None):
         while True:
             message: Message = await websocket.receive()
             if message["type"] == "websocket.receive":
-                print("\n\n\n\nreceived from client")
-                print(message)
-                print("\n\n\n\n")
                 await handle_message(commands, message)
             elif message["type"] == "websocket.disconnect":
                 close_code = int(message.get("code", status.WS_1000_NORMAL_CLOSURE))
