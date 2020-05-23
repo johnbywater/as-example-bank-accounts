@@ -24,7 +24,7 @@ Deposits and withdraws are processed by creating a command, which creates a saga
 Transfers are processed by firstly debiting one account and then crediting the other account, in a multi-step process controlled by the ``TransferFundsSaga`` saga. 
 
 
-### Update UI from Interface Layer in Event Handlers
+### Update UI from Interface Layer with Event Handlers
 Created a new ``ProcessApplication`` called ``InterfaceApplication`` that follows the ``Accounts`` application. The interface application holds a list of websocket connections. It listens for ``Account.Created`` and ``Account.TransactionAppended`` events and  updates the UI with these events accordingly.
 
 To test this out run ``pip install -e .`` to install dependencies in editable mode and run ``python bankaccounts/main.py`` in the root folder of this example to start the webserver built on ``FastAPI``. 
