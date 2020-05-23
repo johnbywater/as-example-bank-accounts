@@ -7,6 +7,7 @@ setup(
    install_requires=[
         "eventsourcing == 8.2.1",
         "fastapi == 0.53.2",
-        "uvicorn == 0.11.3"
+        "uvicorn == 0.11.3",
+        "Jinja2 == 2.11.2"
    ],
 )

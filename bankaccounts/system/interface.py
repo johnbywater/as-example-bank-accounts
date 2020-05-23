@@ -19,24 +19,8 @@ class InterfaceApplication(ProcessApplication):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._web_app: FastAPI = FastAPI()
-        self._web_app.state.connections = OrderedDict() #holds all websocket connections
-        self._web_app.state.interface = self
+        self.connections = OrderedDict()
         self.dummy_datastore: dict = {}
-
-    @property
-    def web_app(self) -> FastAPI:
-        return self._web_app
-
-    @property
-    def connections(self) -> typing.OrderedDict[UUID, WebSocket]:
-        assert self._web_app.state.connections is not None
-        return self._web_app.state.connections
-
-    def new_user(self, socket: WebSocket):
-        user = User.__create__()
-        self.accounts[user.id] = socket
-        self.save(user)
 
     @applicationpolicy
     def policy(self, repository, event):
@@ -48,7 +32,8 @@ class InterfaceApplication(ProcessApplication):
             "account_id": str(event.originator_id),
             "timestamp": str(event.timestamp),
             "transaction_id": str(event.transaction_id),
-            "error": event.error.__class__.__name__
+            "error": event.error.__class__.__name__,
+            "event_type": "account_error"
         }
         self.dummy_datastore[data["account_id"]]["errors"].append(data["error"])
         for uid, connection in self.connections.items():
@@ -60,8 +45,10 @@ class InterfaceApplication(ProcessApplication):
             "account_id": str(event.originator_id),
             "timestamp": str(event.timestamp),
             "transaction_id": str(event.transaction_id),
-            "amount": float(event.amount)
+            "amount": float(event.amount),
+            "event_type": "account_transaction"
         }
+        print(f"\n\n\ntransaction appended {data}\n\n\n")
         self.dummy_datastore[data["account_id"]]["balance"] += data["amount"]
         for uid, connection in self.connections.items():
             asyncio.create_task(connection.send_json(data))
@@ -70,7 +57,8 @@ class InterfaceApplication(ProcessApplication):
     def _(self, repository, event):
         data = {
             "account_id": str(event.originator_id),
-            "timestamp": str(event.timestamp)
+            "timestamp": str(event.timestamp),
+            "event_type": "new_account"
         }
         #similar to saving an orm object in the applications database
         self.dummy_datastore[data["account_id"]] = {"balance":0, "errors":[]}
